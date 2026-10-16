@@ -1,0 +1,55 @@
+{
+  "model": "Random Forest",
+  "samples_total": 534,
+  "samples_train": 427,
+  "samples_test": 107,
+  "accuracy": 0.9907,
+  "precision": 0.98,
+  "recall": 1.0,
+  "f1": 0.9899,
+  "confusion_matrix": [
+    [
+      57,
+      1
+    ],
+    [
+      0,
+      49
+    ]
+  ],
+  "cv_accuracy_comparison": {
+    "Logistic Regression": 0.979,
+    "Decision Tree": 0.9977,
+    "Random Forest": 0.9953,
+    "Gradient Boosting": 0.9977
+  },
+  "feature_importance": {
+    "Gender": 0.0851,
+    "Hemoglobin": 0.8382,
+    "MCH": 0.0256,
+    "MCHC": 0.0228,
+    "MCV": 0.0284
+  },
+  "feature_ranges": {
+    "Gender": [
+      0.0,
+      1.0
+    ],
+    "Hemoglobin": [
+      6.6,
+      16.9
+    ],
+    "MCH": [
+      16.0,
+      30.0
+    ],
+    "MCHC": [
+      27.8,
+      32.5
+    ],
+    "MCV": [
+      69.4,
+      101.6
+    ]
+  }
+}

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AnemiaScan - Check your blood report for anemia</title>
+<meta name="description" content="Enter your hemoglobin, MCH, MCHC and MCV values and get an instant machine learning anemia screening result.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A9%B8%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef3f6; --card:#ffffff; --ink:#13202b; --muted:#5b6b78; --line:#d9e2e8;
+  --blood:#b3122e; --blood-soft:#fbe7ea; --ok:#0d7a69; --ok-soft:#dff3ee;
+  --warn:#a65f00; --warn-soft:#fdf0d8; --focus:#1f6feb; --shadow:0 1px 2px rgba(19,32,43,.06),0 8px 28px rgba(19,32,43,.07);
+  --track:#e3eaef; --glass:#f7fafc;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0e161d; --card:#16212b; --ink:#e8eff4; --muted:#9db0bf; --line:#263644;
+    --blood:#ff5d73; --blood-soft:#3a1820; --ok:#4fd1b8; --ok-soft:#10312c;
+    --warn:#f0b04a; --warn-soft:#35280f; --focus:#6aa6ff; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35);
+    --track:#243441; --glass:#1b2833; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0;letter-spacing:-.015em}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* header */
+header{padding:22px 0 8px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:1.35rem}
+.brand svg{width:30px;height:30px}
+.intro{padding:26px 0 30px;max-width:720px}
+.intro h1{font-size:clamp(2rem,5vw,3.3rem);font-weight:800}
+.intro p{color:var(--muted);font-size:1.08rem;margin:14px 0 0;max-width:60ch}
+
+/* layout */
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:24px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:28px}
+.card h2{font-size:1.45rem;font-weight:700}
+.card .sub{color:var(--muted);margin:6px 0 22px;font-size:.98rem}
+
+/* form */
+fieldset{border:0;margin:0 0 22px;padding:0}
+legend{font-weight:600;margin-bottom:10px;padding:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--track);padding:5px;border-radius:14px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{display:flex;justify-content:center;align-items:center;gap:8px;padding:11px;border-radius:10px;cursor:pointer;font-weight:600;color:var(--muted);transition:background .15s,color .15s}
+.seg input:checked+label{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(19,32,43,.18)}
+.seg input:focus-visible+label{outline:3px solid var(--focus);outline-offset:2px}
+
+.field{margin-bottom:20px}
+.field-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.field label.name{font-weight:600}
+.field .hint{font-size:.86rem;color:var(--muted)}
+.input-row{display:grid;grid-template-columns:130px 1fr;gap:16px;align-items:center;margin-top:8px}
+.num{position:relative}
+.num input{width:100%;font:600 1.15rem var(--body);padding:11px 52px 11px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--glass);color:var(--ink)}
+.num input:focus{outline:3px solid var(--focus);outline-offset:1px;border-color:var(--focus)}
+.num input.bad{border-color:var(--blood)}
+.num span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.82rem;color:var(--muted);pointer-events:none}
+input[type=range]{width:100%;accent-color:var(--blood);height:28px;cursor:pointer}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:8px}
+.btn{font:700 1.05rem var(--body);border:0;border-radius:14px;padding:15px 28px;cursor:pointer;transition:transform .12s,box-shadow .12s,opacity .12s}
+.btn.primary{background:var(--blood);color:#fff;flex:1 1 220px;box-shadow:0 6px 18px rgba(179,18,46,.28)}
+@media (prefers-color-scheme:dark){.btn.primary{color:#1a0a0d}}
+.btn.primary:hover{transform:translateY(-1px)}
+.btn.primary:disabled{opacity:.65;cursor:wait;transform:none}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);padding:13px 18px;font-weight:600;font-size:.95rem}
+.btn.ghost:hover{background:var(--track)}
+.samples{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:18px;font-size:.9rem;color:var(--muted)}
+.error{margin-top:16px;padding:12px 14px;border-radius:12px;background:var(--blood-soft);color:var(--blood);font-weight:500;display:none}
+.error.show{display:block}
+
+/* sample vial */
+.side{position:sticky;top:20px;display:flex;flex-direction:column;gap:24px}
+.vial-card{padding:24px 28px}
+.vial-wrap{display:flex;gap:22px;align-items:center}
+.vial-wrap svg{width:96px;flex:none;overflow:visible}
+.vial-text h3{font-size:1.15rem}
+.vial-text p{margin:6px 0 0;color:var(--muted);font-size:.93rem}
+.hbnum{font-family:var(--display);font-weight:800;font-size:2.2rem;line-height:1}
+.hbnum small{font-size:.9rem;font-weight:500;color:var(--muted);margin-left:4px;font-family:var(--body)}
+#fill{transition:y .45s cubic-bezier(.3,.8,.3,1),height .45s cubic-bezier(.3,.8,.3,1),fill .45s}
+
+/* result */
+.result{display:none}
+.result.show{display:block;animation:pop .45s cubic-bezier(.2,.9,.3,1.1)}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
+.verdict{display:flex;align-items:center;gap:18px}
+.ring{position:relative;width:104px;height:104px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:10;stroke-linecap:round}
+.ring .t{stroke:var(--track)}
+.ring .v{stroke:var(--tone);stroke-dasharray:289;stroke-dashoffset:289;transition:stroke-dashoffset 1s cubic-bezier(.3,.8,.3,1)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font:800 1.45rem var(--display)}
+.result.pos{--tone:var(--blood);--tone-soft:var(--blood-soft)}
+.result.neg{--tone:var(--ok);--tone-soft:var(--ok-soft)}
+.verdict h2{color:var(--tone);font-size:1.6rem}
+.verdict p{margin:4px 0 0;color:var(--muted);font-size:.93rem}
+.advice{margin:20px 0 0;padding:16px 18px;border-radius:14px;background:var(--tone-soft);font-size:.97rem}
+.advice strong{display:block;margin-bottom:6px}
+.advice ul{margin:0;padding-left:20px}
+.advice li{margin:3px 0}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.chip{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--glass)}
+.chip .k{font-size:.8rem;color:var(--muted)}
+.chip .v{font-weight:700;font-size:1.05rem}
+.chip .s{font-size:.78rem;font-weight:600;margin-left:6px}
+.s.low{color:var(--blood)} .s.high{color:var(--warn)} .s.normal{color:var(--ok)}
+.chip .r{font-size:.76rem;color:var(--muted)}
+.note{margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-size:.88rem;display:none}
+.note.show{display:block}
+.disclaimer{margin:16px 0 0;font-size:.82rem;color:var(--muted)}
+
+/* about */
+.about{margin:28px 0 8px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 22px}
+.stat{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stat b{display:block;font:800 1.7rem var(--display)}
+.stat span{font-size:.85rem;color:var(--muted)}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:110px 1fr 48px;gap:12px;align-items:center;font-size:.92rem}
+.bar i{display:block;height:10px;border-radius:99px;background:var(--track);overflow:hidden}
+.bar i em{display:block;height:100%;background:var(--blood);border-radius:99px;width:0;transition:width .9s cubic-bezier(.3,.8,.3,1)}
+.bar b{text-align:right;font-weight:600}
+footer{padding:26px 0 48px;color:var(--muted);font-size:.88rem}
+
+@media (max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .side{position:static}
+  .stats{grid-template-columns:1fr 1fr}
+}
+@media (max-width:520px){
+  .card{padding:20px}
+  .input-row{grid-template-columns:1fr}
+  .bar{grid-template-columns:90px 1fr 44px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2C12 9 6 14 6 20a10 10 0 0 0 20 0c0-6-6-11-10-18z" fill="var(--blood)"/><path d="M11 21a5 5 0 0 0 5 5" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none" opacity=".7"/></svg>
+      AnemiaScan
+    </div>
+  </header>
+
+  <section class="intro">
+    <h1>Check your blood report for anemia in seconds</h1>
+    <p>Type in the values from your complete blood count (CBC). A machine learning model trained on real blood test records tells you whether your numbers point to anemia.</p>
+  </section>
+
+  <main class="grid">
+    <!-- FORM -->
+    <section class="card" aria-labelledby="form-title">
+      <h2 id="form-title">Your blood test values</h2>
+      <p class="sub">You can find these on your CBC report. Fill in all five fields.</p>
+
+      <form id="form" novalidate>
+        <fieldset>
+          <legend>Gender</legend>
+          <div class="seg">
+            <input type="radio" name="gender" id="g0" value="0"><label for="g0">Female</label>
+            <input type="radio" name="gender" id="g1" value="1"><label for="g1">Male</label>
+          </div>
+        </fieldset>
+
+        <div id="fields"></div>
+
+        <div class="actions">
+          <button class="btn primary" id="go" type="submit">Check for anemia</button>
+          <button class="btn ghost" id="clear" type="button">Clear form</button>
+        </div>
+        <div class="samples">
+          Not sure what to enter?
+          <button class="btn ghost" type="button" data-sample="healthy">Try a healthy example</button>
+          <button class="btn ghost" type="button" data-sample="anemic">Try an anemic example</button>
+        </div>
+        <div class="error" id="error" role="alert"></div>
+      </form>
+    </section>
+
+    <!-- SIDE -->
+    <aside class="side">
+      <section class="card vial-card" aria-label="Hemoglobin sample preview">
+        <div class="vial-wrap">
+          <svg viewBox="0 0 96 300" aria-hidden="true">
+            <defs><clipPath id="tube"><path d="M18 8h60v236a30 30 0 0 1-60 0z"/></clipPath></defs>
+            <path d="M18 8h60v236a30 30 0 0 1-60 0z" fill="var(--glass)"/>
+            <rect id="fill" x="0" y="274" width="96" height="0" clip-path="url(#tube)" fill="hsl(350 70% 58%)"/>
+            <line id="thr" x1="8" x2="88" y1="120" y2="120" stroke="var(--ink)" stroke-width="2" stroke-dasharray="5 4" opacity=".75"/>
+            <path d="M18 8h60v236a30 30 0 0 1-60 0z" fill="none" stroke="var(--ink)" stroke-width="3" opacity=".55"/>
+            <rect x="12" y="2" width="72" height="12" rx="6" fill="var(--ink)" opacity=".55"/>
+          </svg>
+          <div class="vial-text">
+            <div class="hbnum" id="hbnum">&ndash;<small>g/dL</small></div>
+            <h3>Hemoglobin level</h3>
+            <p id="vialnote">The vial fills as you type. The dashed line marks the usual lower limit for your gender.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card result" id="result" aria-live="polite">
+        <div class="verdict">
+          <div class="ring">
+            <svg viewBox="0 0 104 104"><circle class="t" cx="52" cy="52" r="46"/><circle class="v" id="ringv" cx="52" cy="52" r="46"/></svg>
+            <b id="ringtxt">0%</b>
+          </div>
+          <div>
+            <h2 id="vtitle"></h2>
+            <p id="vsub"></p>
+          </div>
+        </div>
+        <div class="advice" id="advice"></div>
+        <div class="chips" id="chips"></div>
+        <div class="note" id="note"></div>
+        <p class="disclaimer">This tool is a screening aid and does not replace a doctor. Only a medical professional can diagnose anemia or its cause.</p>
+      </section>
+    </aside>
+  </main>
+
+  <section class="card about" aria-labelledby="about-title">
+    <h2 id="about-title">About the model</h2>
+    <p class="sub" style="margin-bottom:0">A Random Forest classifier, tested on blood records it had never seen during training.</p>
+    <div class="stats" id="stats"></div>
+    <h3 style="font-size:1.05rem;margin-bottom:12px">How much each value influences the result</h3>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <footer>AnemiaScan is built for learning and early awareness. If you feel tired, dizzy or short of breath, please see a doctor.</footer>
+</div>
+
+<script>
+const FIELDS = [
+  {key:"Hemoglobin", label:"Hemoglobin (Hb)", unit:"g/dL", min:3, max:22, step:.1, smin:4, smax:18, ex:[13.5,10.2]},
+  {key:"MCH",  label:"MCH (mean corpuscular hemoglobin)", unit:"pg",  min:10, max:40,  step:.1, smin:14, smax:34, ex:[28.5,20.1], ref:"27 to 33 pg"},
+  {key:"MCHC", label:"MCHC (mean corpuscular Hb concentration)", unit:"g/dL", min:20, max:40, step:.1, smin:26, smax:36, ex:[31.8,29.0], ref:"32 to 36 g/dL"},
+  {key:"MCV",  label:"MCV (mean corpuscular volume)", unit:"fL", min:50, max:130, step:.1, smin:60, smax:110, ex:[90.0,72.5], ref:"80 to 100 fL"}
+];
+const SAMPLES = {healthy:{g:1,i:0}, anemic:{g:0,i:1}};
+const $ = s => document.querySelector(s);
+const fieldsEl = $("#fields");
+
+fieldsEl.innerHTML = FIELDS.map(f => `
+  <div class="field">
+    <div class="field-top">
+      <label class="name" for="n_${f.key}">${f.label}</label>
+      <span class="hint" id="h_${f.key}">Typical: ${f.ref || ""}</span>
+    </div>
+    <div class="input-row">
+      <div class="num"><input id="n_${f.key}" type="number" inputmode="decimal" step="${f.step}" min="${f.min}" max="${f.max}" placeholder="e.g. ${f.ex[0]}"><span>${f.unit}</span></div>
+      <input id="r_${f.key}" type="range" min="${f.smin}" max="${f.smax}" step="${f.step}" value="${(f.smin+f.smax)/2}" aria-label="${f.label} slider">
+    </div>
+  </div>`).join("");
+
+const gender = () => (document.querySelector("input[name=gender]:checked")||{}).value;
+const num = k => $("#n_"+k), rng = k => $("#r_"+k);
+
+/* ---- live sync: slider <-> number <-> vial ---- */
+FIELDS.forEach(f => {
+  rng(f.key).addEventListener("input", () => { num(f.key).value = (+rng(f.key).value).toFixed(1); num(f.key).classList.remove("bad"); updateVial(); });
+  num(f.key).addEventListener("input", () => {
+    const v = parseFloat(num(f.key).value);
+    if (!isNaN(v)) rng(f.key).value = Math.min(f.smax, Math.max(f.smin, v));
+    num(f.key).classList.remove("bad"); updateVial();
+  });
+});
+document.querySelectorAll("input[name=gender]").forEach(r => r.addEventListener("change", () => { updateHints(); updateVial(); }));
+
+function updateHints(){
+  const g = gender();
+  $("#h_Hemoglobin").textContent = g === "1" ? "Typical: 13.5 to 17.5 g/dL" : g === "0" ? "Typical: 12 to 15.5 g/dL" : "Typical: 12 to 17.5 g/dL, depends on gender";
+}
+
+/* ---- hemoglobin vial ---- */
+function updateVial(){
+  const hb = parseFloat(num("Hemoglobin").value), g = gender();
+  const top = 12, bottom = 274, H = bottom - top;               // fill area (y px)
+  const level = v => Math.min(1, Math.max(0, (v - 4) / 14));   // 4..18 g/dL maps to empty..full
+  const thrVal = g === "1" ? 13.5 : 12;
+  const thrY = bottom - level(thrVal) * H;
+  $("#thr").setAttribute("y1", thrY); $("#thr").setAttribute("y2", thrY);
+  const fill = $("#fill");
+  if (isNaN(hb)) {
+    fill.setAttribute("height", 0); fill.setAttribute("y", bottom);
+    $("#hbnum").innerHTML = "&ndash;<small>g/dL</small>";
+    $("#vialnote").textContent = "The vial fills as you type. The dashed line marks the usual lower limit" + (g ? "" : " for your gender") + ".";
+    return;
+  }
+  const h = level(hb) * H;
+  fill.setAttribute("height", h); fill.setAttribute("y", bottom - h);
+  const light = 58 - level(hb) * 24;                            // lower Hb = paler blood
+  fill.setAttribute("fill", `hsl(350 ${55 + level(hb)*25}% ${light}%)`);
+  $("#hbnum").innerHTML = hb.toFixed(1) + "<small>g/dL</small>";
+  $("#vialnote").textContent = !g ? "Select a gender to see the lower limit line for you."
+    : hb < thrVal ? "Below the usual lower limit of " + thrVal + " g/dL. This is the main sign of anemia."
+    : "At or above the usual lower limit of " + thrVal + " g/dL.";
+}
+
+/* ---- samples + clear ---- */
+document.querySelectorAll("[data-sample]").forEach(b => b.addEventListener("click", () => {
+  const s = SAMPLES[b.dataset.sample];
+  document.getElementById("g" + s.g).checked = true;
+  FIELDS.forEach(f => { num(f.key).value = f.ex[s.i].toFixed(1); rng(f.key).value = f.ex[s.i]; num(f.key).classList.remove("bad"); });
+  updateHints(); updateVial(); hideError();
+}));
+$("#clear").addEventListener("click", () => {
+  document.querySelectorAll("input[name=gender]").forEach(r => r.checked = false);
+  FIELDS.forEach(f => { num(f.key).value = ""; rng(f.key).value = (f.smin+f.smax)/2; num(f.key).classList.remove("bad"); });
+  $("#result").classList.remove("show", "pos", "neg"); hideError(); updateHints(); updateVial();
+});
+
+/* ---- predict ---- */
+const errEl = $("#error");
+const showError = m => { errEl.textContent = m; errEl.classList.add("show"); };
+const hideError = () => errEl.classList.remove("show");
+
+$("#form").addEventListener("submit", async e => {
+  e.preventDefault(); hideError();
+  const g = gender();
+  if (g === undefined) return showError("Please choose your gender first.");
+  const payload = {gender: +g};
+  for (const f of FIELDS) {
+    const raw = num(f.key).value.trim(), v = parseFloat(raw);
+    if (raw === "" || isNaN(v)) { num(f.key).classList.add("bad"); num(f.key).focus(); return showError(`Enter a value for ${f.key}.`); }
+    if (v < f.min || v > f.max) { num(f.key).classList.add("bad"); num(f.key).focus(); return showError(`${f.key} should be between ${f.min} and ${f.max} ${f.unit}.`); }
+    payload[f.key] = v;
+  }
+  const btn = $("#go"); btn.disabled = true; btn.textContent = "Checking...";
+  try {
+    const res = await fetch("/api/predict", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "The server could not process this request.");
+    renderResult(data);
+  } catch (err) {
+    showError(err.message === "Failed to fetch" ? "Could not reach the server. Check your internet connection and try again." : err.message);
+  } finally { btn.disabled = false; btn.textContent = "Check for anemia"; }
+});
+
+function renderResult(d){
+  const box = $("#result"), pos = d.prediction === 1;
+  box.classList.remove("pos", "neg"); box.classList.add("show", pos ? "pos" : "neg");
+  $("#vtitle").textContent = d.label;
+  const pct = Math.round((pos ? d.probability_anemia : d.probability_healthy) * 100);
+  $("#vsub").textContent = `The model is ${pct}% sure (${d.confidence_level} confidence).`;
+  $("#ringtxt").textContent = pct + "%";
+  const ring = $("#ringv"); ring.style.strokeDashoffset = 289;
+  requestAnimationFrame(() => requestAnimationFrame(() => ring.style.strokeDashoffset = 289 * (1 - pct/100)));
+
+  $("#advice").innerHTML = pos
+    ? `<strong>What to do next</strong><ul>
+        <li>Show this report to a doctor and ask about a follow-up test.</li>
+        <li>Common causes include low iron, vitamin B12 or folate. A doctor can tell which one applies to you.</li>
+        <li>Do not start supplements on your own before you know the cause.</li></ul>`
+    : `<strong>Your values look fine</strong><ul>
+        <li>Nothing here points to anemia.</li>
+        <li>Keep eating iron-rich foods such as lentils, spinach, meat and eggs.</li>
+        <li>If you still feel unusually tired or weak, see a doctor anyway.</li></ul>`;
+
+  const names = {Hemoglobin:"Hemoglobin", MCH:"MCH", MCHC:"MCHC", MCV:"MCV"}, units = {Hemoglobin:"g/dL", MCH:"pg", MCHC:"g/dL", MCV:"fL"};
+  $("#chips").innerHTML = Object.entries(d.flags).map(([k, f]) => `
+    <div class="chip"><div class="k">${names[k]}</div>
+      <div><span class="v">${f.value} ${units[k]}</span><span class="s ${f.status}">${f.status}</span></div>
+      <div class="r">Typical ${f.range[0]} to ${f.range[1]}</div></div>`).join("");
+
+  const note = $("#note");
+  if (d.outside_training_range.length) { note.textContent = `${d.outside_training_range.join(", ")} fell outside the range the model learned from, so this result may be less reliable.`; note.classList.add("show"); }
+  else note.classList.remove("show");
+  box.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block:"nearest"});
+}
+
+/* ---- model info ---- */
+fetch("/api/model-info").then(r => r.json()).then(m => {
+  const p = v => (v * 100).toFixed(1) + "%";
+  $("#stats").innerHTML = [["Accuracy", p(m.accuracy)], ["Precision", p(m.precision)], ["Recall", p(m.recall)], ["Records used", m.samples_total]]
+    .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+  const imp = Object.entries(m.feature_importance).sort((a, b) => b[1] - a[1]);
+  $("#bars").innerHTML = imp.map(([k, v]) => `<div class="bar"><span>${k}</span><i><em data-w="${v*100}"></em></i><b>${(v*100).toFixed(0)}%</b></div>`).join("");
+  requestAnimationFrame(() => document.querySelectorAll(".bar em").forEach(e => e.style.width = e.dataset.w + "%"));
+}).catch(() => { $("#stats").innerHTML = ""; $("#bars").innerHTML = ""; });
+
+updateHints(); updateVial();
+</script>
+</body>
+</html>
